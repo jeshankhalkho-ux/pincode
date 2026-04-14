@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PicCode — India Pincode Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0d1b2a; --navy2: #162236;
+    --saffron: #f4871e; --saffron-light: #fca44d;
+    --gold: #e8c44a; --white: #ffffff;
+    --muted: #8a9ab5; --green: #2ecc9a; --red: #ff6b6b;
+    --card-bg: #162236; --border: rgba(244,135,30,0.18);
+  }
+  html, body { min-height: 100vh; background: var(--navy); font-family: 'DM Sans', sans-serif; color: var(--white); overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 10% 0%, rgba(244,135,30,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 90% 100%, rgba(232,196,74,0.07) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+  .stamp-grid {
+    position: fixed; inset: 0;
+    background-image: repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.02) 39px,rgba(255,255,255,0.02) 40px),
+                      repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,0.02) 39px,rgba(255,255,255,0.02) 40px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+  header { text-align: center; margin-bottom: 52px; animation: fadeUp 0.7s ease both; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(244,135,30,0.12); border: 1px solid rgba(244,135,30,0.3);
+    color: var(--saffron); font-family: 'DM Mono', monospace;
+    font-size: 11px; font-weight: 500; letter-spacing: 2px;
+    padding: 6px 14px; border-radius: 100px; margin-bottom: 20px;
+  }
+  .badge::before { content: '✦'; font-size: 9px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 8vw, 76px); font-weight: 900; line-height: 1; letter-spacing: -2px;
+    background: linear-gradient(135deg, var(--white) 30%, var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 14px;
+  }
+  .tagline { color: var(--muted); font-size: 16px; font-weight: 300; }
+  .search-wrap {
+    display: flex; gap: 12px;
+    background: rgba(255,255,255,0.04); border: 1.5px solid var(--border);
+    border-radius: 16px; padding: 8px 8px 8px 24px; margin-bottom: 40px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    animation: fadeUp 0.7s 0.1s ease both; backdrop-filter: blur(10px);
+  }
+  .search-wrap:focus-within { border-color: rgba(244,135,30,0.6); box-shadow: 0 0 0 4px rgba(244,135,30,0.1), 0 8px 32px rgba(0,0,0,0.3); }
+  .pin-icon { font-size: 22px; flex-shrink: 0; display: flex; align-items: center; }
+  #pinInput { flex: 1; background: transparent; border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: var(--white); letter-spacing: 6px; min-width: 0; }
+  #pinInput::placeholder { color: rgba(255,255,255,0.2); letter-spacing: 4px; }
+  #searchBtn { background: linear-gradient(135deg, var(--saffron), var(--saffron-light)); color: var(--white); border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 14px 28px; border-radius: 10px; transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s; white-space: nowrap; flex-shrink: 0; }
+  #searchBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(244,135,30,0.4); }
+  #searchBtn:active { transform: translateY(0); }
+  #searchBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .loader { display: none; text-align: center; padding: 60px 0; }
+  .loader.active { display: block; animation: fadeIn 0.3s ease; }
+  .spinner { width: 44px; height: 44px; margin: 0 auto 16px; border: 3px solid rgba(244,135,30,0.15); border-top-color: var(--saffron); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .loader p { color: var(--muted); font-size: 14px; }
+  .error-box { display: none; background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.3); border-radius: 12px; padding: 18px 22px; color: var(--red); font-size: 14px; margin-bottom: 24px; }
+  .error-box.active { display: flex; gap: 10px; align-items: flex-start; animation: fadeIn 0.3s ease; }
+  .summary { display: none; margin-bottom: 32px; }
+  .summary.active { display: block; animation: fadeUp 0.4s ease both; }
+  .summary-inner { background: linear-gradient(135deg, rgba(244,135,30,0.15), rgba(232,196,74,0.08)); border: 1.5px solid rgba(244,135,30,0.35); border-radius: 18px; padding: 28px 32px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; position: relative; overflow: hidden; }
+  .summary-inner::after { content: '✉'; position: absolute; right: 28px; top: 50%; transform: translateY(-50%); font-size: 80px; opacity: 0.06; pointer-events: none; }
+  .pin-badge { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 900; color: var(--saffron); line-height: 1; flex-shrink: 0; }
+  .summary-info { flex: 1; }
+  .summary-info h2 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .meta-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+  .meta-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--muted); }
+  .meta-pill span { color: var(--white); font-weight: 600; }
+  .count-badge { background: rgba(46,204,154,0.12); border: 1px solid rgba(46,204,154,0.3); color: var(--green); font-family: 'DM Mono', monospace; font-size: 12px; padding: 4px 12px; border-radius: 100px; flex-shrink: 0; }
+  .section-label { font-size: 11px; letter-spacing: 2.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; }
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .po-card { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 22px; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; opacity: 0; animation: fadeUp 0.4s ease forwards; }
+  .po-card:hover { transform: translateY(-3px); border-color: rgba(244,135,30,0.3); box-shadow: 0 10px 32px rgba(0,0,0,0.3); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .po-name { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--white); flex: 1; margin-right: 10px; }
+  .delivery-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+  .delivery-dot.delivery { background: var(--green); box-shadow: 0 0 6px rgba(46,204,154,0.5); }
+  .delivery-dot.non-delivery { background: var(--red); box-shadow: 0 0 6px rgba(255,107,107,0.4); }
+  .card-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 7px; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 7px; }
+  .card-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .card-label { color: var(--muted); }
+  .card-val { color: var(--white); font-weight: 500; text-align: right; max-width: 60%; }
+  .branch-tag { display: inline-block; margin-top: 12px; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 6px; }
+  .branch-tag.head { background: rgba(232,196,74,0.15); color: var(--gold); border: 1px solid rgba(232,196,74,0.3); }
+  .branch-tag.sub { background: rgba(138,154,181,0.1); color: var(--muted); border: 1px solid rgba(138,154,181,0.2); }
+  .branch-tag.branch { background: rgba(46,204,154,0.1); color: var(--green); border: 1px solid rgba(46,204,154,0.2); }
+  footer { text-align: center; margin-top: 64px; color: rgba(138,154,181,0.5); font-size: 12px; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 600px) {
+    .search-wrap { padding: 8px 8px 8px 16px; }
+    #pinInput { font-size: 18px; letter-spacing: 4px; }
+    #searchBtn { padding: 12px 18px; }
+    .pin-badge { font-size: 36px; }
+    .summary-inner { padding: 20px; }
+    .summary-inner::after { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="stamp-grid"></div>
+<div class="container">
+  <header>
+    <div class="badge">India Postal Network</div>
+    <h1>PicCode</h1>
+    <p class="tagline">Explore every post office hidden inside an Indian PIN code</p>
+  </header>
+
+  <div class="search-wrap">
+    <div class="pin-icon">📮</div>
+    <input id="pinInput" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit PIN" autocomplete="off"/>
+    <button id="searchBtn" onclick="lookup()">Search →</button>
+  </div>
+
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Fetching postal data…</p>
+  </div>
+
+  <div class="error-box" id="errorBox">
+    <span>⚠</span><span id="errorMsg"></span>
+  </div>
+
+  <div class="summary" id="summary">
+    <div class="summary-inner">
+      <div class="pin-badge" id="summaryPin"></div>
+      <div class="summary-info">
+        <h2 id="summaryLocation"></h2>
+        <div class="meta-row">
+          <div class="meta-pill">State <span id="summaryState"></span></div>
+          <div class="meta-pill">District <span id="summaryDistrict"></span></div>
+          <div class="meta-pill">Division <span id="summaryDivision"></span></div>
+        </div>
+      </div>
+      <div class="count-badge" id="summaryCount"></div>
+    </div>
+  </div>
+
+  <div id="results"></div>
+  <footer>Built with ♥ by <strong style="color:var(--saffron)">Jishan</strong> &nbsp;·&nbsp; PicCode</footer>
+</div>
+
+<script>
+  // ─── CONFIG ───────────────────────────────────────────────────────────────
+  // Your Railway backend — the /api/pincode/:pin route proxies postalpincode.in
+  const BACKEND = 'https://api.postalpincode.in/pincode/';  // same domain as frontend, no backend needed
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const input = document.getElementById('pinInput');
+  const btn   = document.getElementById('searchBtn');
+
+  input.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g,'').slice(0,6); });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+
+  function showLoader(v)  { document.getElementById('loader').classList.toggle('active', v); btn.disabled = v; }
+  function showError(msg) { document.getElementById('errorMsg').textContent = msg; document.getElementById('errorBox').classList.add('active'); }
+  function clearError()   { document.getElementById('errorBox').classList.remove('active'); }
+  function clearResults() { document.getElementById('results').innerHTML = ''; document.getElementById('summary').classList.remove('active'); }
+
+  async function lookup() {
+    const pin = input.value.trim();
+    if (pin.length !== 6) { showError('Please enter a valid 6-digit PIN code.'); return; }
+
+    clearError(); clearResults(); showLoader(true);
+
+    try {
+      const res = await fetch(`/api/pincode/${pin}`);
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Server error ${res.status}`);
+      }
+
+      const data   = await res.json();   // [{Message, Status, PostOffice:[...]}]
+      const record = data[0];
+
+      if (record.Status === 'Error' || !record.PostOffice) {
+        showError(record.Message || 'No post offices found for this PIN.');
+        return;
+      }
+
+      renderResults(record.PostOffice, pin);
+    } catch (e) {
+      showError('Could not fetch data: ' + e.message);
+    } finally {
+      showLoader(false);
+    }
+  }
+
+  function renderResults(offices, pin) {
+    const first = offices[0];
+
+    document.getElementById('summaryPin').textContent      = pin;
+    document.getElementById('summaryLocation').textContent = `${first.Region}, ${first.State}`;
+    document.getElementById('summaryState').textContent    = first.State;
+    document.getElementById('summaryDistrict').textContent = first.District;
+    document.getElementById('summaryDivision').textContent = (first.Division || '').trim();
+    document.getElementById('summaryCount').textContent    = `${offices.length} Post Office${offices.length !== 1 ? 's' : ''}`;
+    document.getElementById('summary').classList.add('active');
+
+    const wrap  = document.getElementById('results');
+    const label = document.createElement('div');
+    label.className = 'section-label'; label.textContent = 'Post Offices';
+    wrap.appendChild(label);
+
+    const grid = document.createElement('div');
+    grid.className = 'cards-grid';
+
+    offices.forEach((po, i) => {
+      const isDelivery  = po.DeliveryStatus === 'Delivery';
+      const bt          = (po.BranchType || '').toLowerCase();
+      const branchClass = bt.includes('head') ? 'head' : bt.includes('sub') ? 'sub' : 'branch';
+      const branchLabel = bt.includes('head') ? 'Head Office' : bt.includes('sub') ? 'Sub Office' : 'Branch Office';
+
+      const card = document.createElement('div');
+      card.className = 'po-card';
+      card.style.animationDelay = `${i * 60}ms`;
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="po-name">${po.Name}</div>
+          <div class="delivery-dot ${isDelivery ? 'delivery' : 'non-delivery'}" title="${po.DeliveryStatus}"></div>
+        </div>
+        <div class="card-row"><span class="card-label">Block</span><span class="card-val">${po.Block}</span></div>
+        <div class="card-row"><span class="card-label">District</span><span class="card-val">${po.District}</span></div>
+        <div class="card-row"><span class="card-label">Division</span><span class="card-val">${(po.Division||'').trim()}</span></div>
+        <div class="card-row"><span class="card-label">Circle</span><span class="card-val">${po.Circle}</span></div>
+        <div class="card-row"><span class="card-label">Delivery</span>
+          <span class="card-val" style="color:${isDelivery ? 'var(--green)' : 'var(--red)'}">${po.DeliveryStatus}</span>
+        </div>
+        <span class="branch-tag ${branchClass}">${branchLabel}</span>`;
+      grid.appendChild(card);
+    });
+
+    wrap.appendChild(grid);
+  }
+</script>
+</body>
+</html>
