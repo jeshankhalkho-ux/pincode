@@ -152,10 +152,7 @@
 </div>
 
 <script>
-  // ─── CONFIG ───────────────────────────────────────────────────────────────
-  // Your Railway backend — the /api/pincode/:pin route proxies postalpincode.in
-  const BACKEND = 'https://api.postalpincode.in/pincode/';  // same domain as frontend, no backend needed
-  // ──────────────────────────────────────────────────────────────────────────
+  const API_URL = 'https://api.postalpincode.in/pincode/';
 
   const input = document.getElementById('pinInput');
   const btn   = document.getElementById('searchBtn');
@@ -175,14 +172,14 @@
     clearError(); clearResults(); showLoader(true);
 
     try {
-      const res = await fetch(`/api/pincode/${pin}`);
+      const res = await fetch(API_URL + pin);
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Server error ${res.status}`);
       }
 
-      const data   = await res.json();   // [{Message, Status, PostOffice:[...]}]
+      const data   = await res.json();
       const record = data[0];
 
       if (record.Status === 'Error' || !record.PostOffice) {
